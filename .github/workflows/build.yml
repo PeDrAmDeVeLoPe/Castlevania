@@ -14,10 +14,15 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Extract Project Files
+      - name: Extract Project Files & Clean Git Status
         run: |
           if [ -f Castlevania_Unity_Project.zip ]; then
             unzip -o Castlevania_Unity_Project.zip -d .
+            rm Castlevania_Unity_Project.zip
+            git config --global user.name "github-actions"
+            git config --global user.email "actions@github.com"
+            git add -A
+            git commit -m "Auto-clean workspace before build" || true
           fi
 
       - name: Cache Library
@@ -38,10 +43,10 @@ jobs:
           targetPlatform: Android
           buildName: CastlevaniaForestDefense
           buildsPath: build
+          versioning: None
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Castlevania-APK
           path: build/Android/CastlevaniaForestDefense.apk
-          
