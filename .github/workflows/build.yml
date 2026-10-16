@@ -14,17 +14,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Extract Project Files
-        run: |
-          if [ -f Castlevania_Unity_Project.zip ]; then
-            unzip -o Castlevania_Unity_Project.zip -d .
-          fi
-
-      - name: Set up Java 17
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -98,33 +92,4 @@ jobs:
                   if(tw.cd === 0){
                     let target = null, md = tw.r;
                     enemies.forEach(en => { let d = Math.hypot(en.x-tw.x, en.y-tw.y); if(d < md){ md = d; target = en; } });
-                    if(target){ target.hp -= tw.dmg; tw.cd = tw.t==='stake'?35:55; shots.push({x1: tw.x, y1: tw.y, x2: target.x, y2: target.y, l: 4, c: tw.t==='stake'?'#facc15':'#ef4444'}); if(target.hp <= 0){ gold += 25; document.getElementById('gold').textContent = gold; enemies = enemies.filter(x => x !== target); } }
-                  }
-                });
-                for(let i=shots.length-1; i>=0; i--) if(--shots[i].l <= 0) shots.splice(i,1);
-                ctx.fillStyle = '#05160a'; ctx.fillRect(0,0,800,450);
-                ctx.strokeStyle = '#2d1b0e'; ctx.lineWidth = 36; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(path[0].x, path[0].y); path.forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke();
-                towers.forEach(tw => { ctx.fillStyle = tw.t==='stake'?'#e2e8f0':'#ef4444'; ctx.beginPath(); ctx.arc(tw.x, tw.y, 16, 0, 7); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); });
-                shots.forEach(s => { ctx.strokeStyle = s.c; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke(); });
-                enemies.forEach(en => { ctx.fillStyle = '#a855f7'; ctx.fillRect(en.x-12, en.y-12, 24, 24); ctx.fillStyle = '#22c55e'; ctx.fillRect(en.x-14, en.y-20, 28*(en.hp/en.mhp), 4); });
-                requestAnimationFrame(loop);
-              }
-              loop();
-            </script>
-          </body>
-          </html>
-          EOF
-
-          npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap init "Castlevania" "com.castlevania.forestdefense" --web-dir www
-          npx cap add android
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      - name: Upload Finished APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Castlevania-ForestDefense-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+                    if(target){ target.hp -= tw.dmg; tw.cd = tw.t==='stake'?35:55; shots.push({x1: tw.x, y
