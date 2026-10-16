@@ -25,94 +25,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Prepare Web Assets
-        run: |
-          mkdir -p www
-          node -e '
-          const fs = require("fs");
-          const html = `<!DOCTYPE html>
-          <html>
-          <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <title>Castlevania: Forest Defense</title>
-            <style>
-              * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-              body { background: #05160a; color: #fff; font-family: monospace; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-              #container { position: relative; flex: 1; display: flex; }
-              canvas { background: #081c0d; width: 100%; height: 100%; object-fit: contain; }
-              #ui { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; pointer-events: none; text-shadow: 2px 2px #000; }
-              #shop { position: absolute; bottom: 12px; left: 10px; right: 10px; display: flex; justify-content: center; gap: 12px; }
-              .btn { background: #1b4324; border: 2px solid #4ade80; color: #fff; padding: 10px 14px; border-radius: 8px; font-weight: bold; }
-              .btn.active { background: #22c55e; border-color: #fff; }
-            </style>
-          </head>
-          <body>
-            <div id="container">
-              <canvas id="c" width="800" height="450"></canvas>
-              <div id="ui">
-                <div>GOLD: <span id="gold">150</span></div>
-                <div>BASE HP: <span id="hp">100</span></div>
-                <div>WAVE: <span id="wave">1</span></div>
-              </div>
-              <div id="shop">
-                <button class="btn active" id="b1" onclick="setT(\"stake\")">Stake Tower (50g)</button>
-                <button class="btn" id="b2" onclick="setT(\"fire\")">Flame Altar (90g)</button>
-              </div>
-            </div>
-            <script>
-              const c = document.getElementById("c"), ctx = c.getContext("2d");
-              let gold = 150, hp = 100, wave = 1, sel = "stake", towers = [], enemies = [], shots = [], timer = 100, spawning = 0;
-              const path = [{x:0,y:220},{x:220,y:220},{x:220,y:100},{x:450,y:100},{x:450,y:340},{x:660,y:340},{x:660,y:220},{x:800,y:220}];
-              function setT(t){ sel = t; document.getElementById("b1").className = t==="stake"?"btn active":"btn"; document.getElementById("b2").className = t==="fire"?"btn active":"btn"; }
-              c.addEventListener("click", e => {
-                const r = c.getBoundingClientRect(), x = (e.clientX - r.left)*(800/r.width), y = (e.clientY - r.top)*(450/r.height);
-                let onP = false;
-                for(let i=0; i<path.length-1; i++){
-                  let p1=path[i], p2=path[i+1], l2=(p2.x-p1.x)**2+(p2.y-p1.y)**2;
-                  let t = Math.max(0, Math.min(1, ((x-p1.x)*(p2.x-p1.x)+(y-p1.y)*(p2.y-p1.y))/l2));
-                  if(Math.hypot(x-(p1.x+t*(p2.x-p1.x)), y-(p1.y+t*(p2.y-p1.y))) < 35) onP = true;
-                }
-                if(onP) return;
-                let cost = sel==="stake"?50:90;
-                if(gold >= cost){ gold -= cost; towers.push({x, y, t: sel, cd: 0, r: sel==="stake"?120:150, dmg: sel==="stake"?25:45}); document.getElementById("gold").textContent = gold; }
-              });
-              function loop(){
-                if(--timer <= 0 && !spawning){ spawning = 5 + wave * 2; }
-                if(spawning && Math.random() < 0.04){ enemies.push({p: 0, x: path[0].x, y: path[0].y, hp: 60+wave*25, mhp: 60+wave*25, s: 1.6}); spawning--; if(spawning<=0){ timer = 400; wave++; document.getElementById("wave").textContent = wave; } }
-                for(let i=enemies.length-1; i>=0; i--){
-                  let e = enemies[i], t = path[e.p+1];
-                  if(!t){ hp -= 10; document.getElementById("hp").textContent = hp; enemies.splice(i,1); continue; }
-                  let d = Math.hypot(t.x-e.x, t.y-e.y);
-                  if(d < e.s) e.p++; else { e.x += ((t.x-e.x)/d)*e.s; e.y += ((t.y-e.y)/d)*e.s; }
-                }
-                towers.forEach(tw => {
-                  if(tw.cd > 0) tw.cd--;
-                  if(tw.cd === 0){
-                    let target = null, md = tw.r;
-                    enemies.forEach(en => { let d = Math.hypot(en.x-tw.x, en.y-tw.y); if(d < md){ md = d; target = en; } });
-                    if(target){ target.hp -= tw.dmg; tw.cd = tw.t==="stake"?35:55; shots.push({x1: tw.x, y1: tw.y, x2: target.x, y2: target.y, l: 4, c: tw.t==="stake"?"#facc15":"#ef4444"}); if(target.hp <= 0){ gold += 25; document.getElementById("gold").textContent = gold; enemies = enemies.filter(x => x !== target); } }
-                  }
-                });
-                for(let i=shots.length-1; i>=0; i--) if(--shots[i].l <= 0) shots.splice(i,1);
-                ctx.fillStyle = "#05160a"; ctx.fillRect(0,0,800,450);
-                ctx.strokeStyle = "#2d1b0e"; ctx.lineWidth = 36; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(path[0].x, path[0].y); path.forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke();
-                towers.forEach(tw => { ctx.fillStyle = tw.t==="stake"?"#e2e8f0":"#ef4444"; ctx.beginPath(); ctx.arc(tw.x, tw.y, 16, 0, 7); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); });
-                shots.forEach(s => { ctx.strokeStyle = s.c; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke(); });
-                enemies.forEach(en => { ctx.fillStyle = "#a855f7"; ctx.fillRect(en.x-12, en.y-12, 24, 24); ctx.fillStyle = "#22c55e"; ctx.fillRect(en.x-14, en.y-20, 28*(en.hp/en.mhp), 4); });
-                requestAnimationFrame(loop);
-              }
-              loop();
-            </script>
-          </body>
-          </html>`;
-          fs.writeFileSync("www/index.html", html);
-          '
-
       - name: Build Android APK
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
+          mkdir -p www
+          cp index.html www/index.html
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
           npx cap init "Castlevania" "com.castlevania.forestdefense" --web-dir www
@@ -126,3 +45,4 @@ jobs:
         with:
           name: Castlevania-ForestDefense-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          
